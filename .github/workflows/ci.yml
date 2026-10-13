@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or PR supersedes the running check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Lint, typecheck, migrate, test and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Throwaway PostgreSQL that exists only for this job.
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: rrms_app
+          POSTGRES_PASSWORD: rrms_ci_password
+          POSTGRES_DB: rrms_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rrms_app -d rrms_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # CI-only values; real secrets never live in the repository.
+    # tests/setup.ts only accepts a database whose name ends in "_test", so both
+    # URLs point at the temporary rrms_test database.
+    env:
+      DATABASE_URL: postgresql://rrms_app:rrms_ci_password@localhost:5432/rrms_test?schema=public
+      TEST_DATABASE_URL: postgresql://rrms_app:rrms_ci_password@localhost:5432/rrms_test?schema=public
+      AUTH_SECRET: ci-only-auth-secret-not-used-outside-github-actions
+      NEXT_TELEMETRY_DISABLED: 1
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        # postinstall runs prisma generate.
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Apply database migrations
+        run: npx prisma migrate deploy
+
+      - name: Check schema matches migrations
+        # Exit code 2 means schema.prisma has changes with no committed migration.
+        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
+      - name: Check database connection
+        run: npm run db:check
+
+      - name: Run tests
+        run: npm test
+
+      - name: Restore Next.js build cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'public/**', '*.config.*') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}-
+
+      - name: Build
+        run: npm run build
