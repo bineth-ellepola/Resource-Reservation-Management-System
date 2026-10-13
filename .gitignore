@@ -43,3 +43,5 @@ next-env.d.ts
 
 # local editor/agent settings
 .claude/settings.local.json
+
+/src/generated/prisma

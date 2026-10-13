@@ -1,0 +1,11 @@
+// RRMS database schema. The connection URL lives in prisma.config.ts.
+// Models are added in RRMS-02.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
