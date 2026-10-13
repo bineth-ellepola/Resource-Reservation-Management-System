@@ -160,6 +160,36 @@ AUTH_SECRET="REPLACE_WITH_A_LONG_RANDOM_VALUE"
 
 Create a local environment file based on `.env.example` and generate an actual secret locally (e.g. `openssl rand -base64 32`). Confirm `.env`, `.env.local`, `.env.*.local`, `.next/` and `node_modules/` are ignored; **do not commit secrets**. Ensure Prisma CLI can read the environment file it is configured to use.
 
+### 4.6 Verified local setup (RRMS-01)
+
+Verified on Windows 11 with Node 24.18, npm 11.16 and PostgreSQL 18.6. Installed versions: Next.js 16.4, Prisma 7.10 (pinned; uses the `@prisma/adapter-pg` driver adapter), Zod 4, Vitest 5. Authentication will use `jose` (signed httpOnly session cookie) and `bcryptjs` rather than `next-auth`, whose credentials-capable v5 is still in beta.
+
+1. Install dependencies (`postinstall` also generates the git-ignored Prisma client into `src/generated/prisma`):
+
+   ```bash
+   npm install
+   ```
+
+2. As the PostgreSQL superuser (on Windows, `psql` is in `C:\Program Files\PostgreSQL\<version>\bin` if it is not on `PATH`), create the application role and two databases. `CREATEDB` lets `prisma migrate dev` create its temporary shadow database. The role does not need superuser: `btree_gist` is a trusted extension that a database owner can create.
+
+   ```sql
+   CREATE ROLE rrms_app WITH LOGIN CREATEDB PASSWORD 'choose-a-local-password';
+   CREATE DATABASE rrms_db OWNER rrms_app;    -- application / demo data
+   CREATE DATABASE rrms_test OWNER rrms_app;  -- integration tests (tables get truncated)
+   ```
+
+3. Copy `.env.example` to `.env` and fill in `DATABASE_URL`, `TEST_DATABASE_URL` and `AUTH_SECRET`. Percent-encode special characters in the password (`@` becomes `%40`).
+
+4. Verify the connection and the quality gate:
+
+   ```bash
+   npm run db:check     # prints: Connected as rrms_app to rrms_db (PostgreSQL ...)
+   npm run typecheck    # next typegen && tsc --noEmit
+   npm run lint
+   npm test             # Vitest; uses TEST_DATABASE_URL and refuses databases not ending in _test
+   npm run build
+   ```
+
 ## 5. Database design and ER diagram (TASK RRMS-02)
 
 The recommended **three-table core** avoids unnecessary abstractions:
@@ -250,11 +280,11 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-00-bootstrap` (if the initial README commit was already placed on main, the bootstrap branch can cover remaining setup). **Depends on:** none.
 
-- [ ] RRMS-00.1 Install/check Node, npm, Git and PostgreSQL.
-- [ ] RRMS-00.2 Scaffold Next.js TypeScript App Router with Tailwind/ESLint.
-- [ ] RRMS-00.3 Confirm local app runs, folder structure and `.gitignore`.
-- [ ] RRMS-00.4 Configure personal Git name/email and empty GitHub remote.
-- [ ] RRMS-00.5 Add README and push initial repository.
+- [x] RRMS-00.1 Install/check Node, npm, Git and PostgreSQL.
+- [x] RRMS-00.2 Scaffold Next.js TypeScript App Router with Tailwind/ESLint.
+- [x] RRMS-00.3 Confirm local app runs, folder structure and `.gitignore`.
+- [x] RRMS-00.4 Configure personal Git name/email and empty GitHub remote.
+- [x] RRMS-00.5 Add README and push initial repository.
 
 **Done when:** `npm run dev` works, repository exists on GitHub, no secrets committed. Suggested commits: `chore(RRMS-00): scaffold Next.js application`, `docs(RRMS-00): document delivery plan`.
 
@@ -262,11 +292,11 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-01-db-tooling`. **Depends on:** RRMS-00.
 
-- [ ] RRMS-01.1 Install Prisma/client, Zod, auth packages, test runner.
-- [ ] RRMS-01.2 Create PostgreSQL `rrms_db` and application role locally.
-- [ ] RRMS-01.3 Configure `.env.example`, ignored local secrets, DB client singleton.
-- [ ] RRMS-01.4 Add scripts for typecheck, lint, test, seed; verify DB connection.
-- [ ] RRMS-01.5 Record exact working run/setup commands.
+- [x] RRMS-01.1 Install Prisma/client, Zod, auth packages, test runner.
+- [x] RRMS-01.2 Create PostgreSQL `rrms_db` and application role locally.
+- [x] RRMS-01.3 Configure `.env.example`, ignored local secrets, DB client singleton.
+- [x] RRMS-01.4 Add scripts for typecheck, lint, test; verify DB connection. (Seed script is added with the seed itself in RRMS-02.4.)
+- [x] RRMS-01.5 Record exact working run/setup commands.
 
 **Done when:** Prisma connects to local PostgreSQL; lint/typecheck pass. Suggested commits: `chore(RRMS-01): configure database tooling`, `chore(RRMS-01): add validation and test scripts`.
 
