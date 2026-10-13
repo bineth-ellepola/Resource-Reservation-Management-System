@@ -1,5 +1,7 @@
 # Resource Reservation Management System (RRMS)
 
+[![CI](https://github.com/bineth-ellepola/Resource-Reservation-Management-System/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bineth-ellepola/Resource-Reservation-Management-System/actions/workflows/ci.yml)
+
 > PrimeWave Lab — Software Engineering Internship Take-Home Project  
 > **Submission deadline:** Thursday, **15 October 2026, 11:59 PM Asia/Colombo**.  
 > **Scope:** Local full-stack application, source code, ER diagram, demo video, and submission links. **No deployment required or planned.**  
@@ -189,6 +191,42 @@ Verified on Windows 11 with Node 24.18, npm 11.16 and PostgreSQL 18.6. Installed
    npm test             # Vitest; uses TEST_DATABASE_URL and refuses databases not ending in _test
    npm run build
    ```
+
+### 4.7 Continuous integration (RRMS-10)
+
+GitHub Actions runs the quality gate in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on every push to any branch and on every pull request into `main`. A newer push to the same branch cancels the run still in progress. The badge at the top of this README shows the latest result on `main`. It reads "no status" until the workflow has run on `main`.
+
+**Temporary database.** The job starts a `postgres:18` service container with an empty `rrms_test` database. The container exists only for that job and is discarded afterwards. The workflow sets `DATABASE_URL` and `TEST_DATABASE_URL` to this database, because `tests/setup.ts` only accepts database names ending in `_test`. `AUTH_SECRET` is a fixed CI-only placeholder. No repository secrets are needed, and `.env` is never used in CI.
+
+**Steps, in order (any failure stops the job):**
+
+| # | Step | Command | Fails when |
+|---|------|---------|------------|
+| 1 | Install | `npm ci` (its `postinstall` runs `prisma generate`) | `package-lock.json` is out of sync with `package.json` |
+| 2 | Prisma validation | `npx prisma validate` | `schema.prisma` is invalid |
+| 3 | Lint | `npm run lint` | ESLint reports errors |
+| 4 | Typecheck | `npm run typecheck` | TypeScript errors (route types are generated first) |
+| 5 | Migrations | `npx prisma migrate deploy` | A committed migration fails to apply to a fresh database |
+| 6 | Migration drift | `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code` | `schema.prisma` was changed without a matching committed migration |
+| 7 | DB connection | `npm run db:check` | The app's Prisma client cannot reach PostgreSQL |
+| 8 | Tests | `npm test` | Any Vitest test fails |
+| 9 | Build | `npm run build` (Next.js build cache restored with `actions/cache`) | Production build fails |
+
+The job runs on Node.js 24, the version used locally. The npm download cache is handled by `actions/setup-node`. The job has read-only repository permissions and a 15-minute timeout. CI only verifies the code: it does not deploy anything.
+
+**Setup.** Nothing needs to be configured: the workflow runs automatically once `.github/workflows/ci.yml` is on GitHub. To make CI a merge requirement, open the repository's **Settings → Branches**, add a branch protection rule (or ruleset) for `main`, enable **Require status checks to pass**, and select **Lint, typecheck, migrate, test and build**.
+
+**Running the same checks locally** against your `rrms_test` database before pushing:
+
+```bash
+npx prisma validate
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+`prisma migrate deploy` and `migrate diff` act on `DATABASE_URL`. To mirror CI exactly, run them only against a disposable database whose name ends in `_test`, never against `rrms_db`.
 
 ## 5. Database design and ER diagram (TASK RRMS-02)
 
@@ -409,6 +447,18 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 - [ ] RRMS-09.8 Capture submission confirmation for personal records.
 
 **Done when:** all submission links are reachable and form confirmation is saved. Suggested commits: `docs(RRMS-09): finalize setup and design notes`, `docs(RRMS-09): add demo instructions`.
+
+### RRMS-10 — Continuous integration
+
+**Branch:** `feature/RRMS-10-ci-pipeline`. **Depends on:** RRMS-01. See [4.7 Continuous integration](#47-continuous-integration-rrms-10).
+
+- [x] RRMS-10.1 Add a GitHub Actions workflow triggered on pushes and pull requests to `main`.
+- [x] RRMS-10.2 Run install, Prisma validation, lint, typecheck, migrations, migration drift check, tests and build against a temporary PostgreSQL service.
+- [x] RRMS-10.3 Document the workflow and add the CI status badge.
+- [ ] RRMS-10.4 Confirm the workflow passes on GitHub for the feature branch.
+- [ ] RRMS-10.5 After merge, optionally require the CI check in branch protection for `main`.
+
+**Done when:** the workflow passes on GitHub and the badge shows the result for `main`. Suggested commits: `ci(RRMS-10): add GitHub Actions quality gate`, `docs(RRMS-10): document CI pipeline`.
 
 ## 8. Timeboxed execution plan (deadline is tight)
 
