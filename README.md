@@ -455,7 +455,7 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 - [x] RRMS-10.1 Add a GitHub Actions workflow triggered on pushes and pull requests to `main`.
 - [x] RRMS-10.2 Run install, Prisma validation, lint, typecheck, migrations, migration drift check, tests and build against a temporary PostgreSQL service.
 - [x] RRMS-10.3 Document the workflow and add the CI status badge.
-- [ ] RRMS-10.4 Confirm the workflow passes on GitHub for the feature branch.
+- [x] RRMS-10.4 Confirm the workflow passes on GitHub for the feature branch.
 - [ ] RRMS-10.5 After merge, optionally require the CI check in branch protection for `main`.
 
 **Done when:** the workflow passes on GitHub and the badge shows the result for `main`. Suggested commits: `ci(RRMS-10): add GitHub Actions quality gate`, `docs(RRMS-10): document CI pipeline`.
