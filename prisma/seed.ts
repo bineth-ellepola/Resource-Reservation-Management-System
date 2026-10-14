@@ -3,7 +3,7 @@
 // Seeded reservations are only created if missing, so re-running never moves a
 // booking onto a slot taken during a demo (which would violate the exclusion constraint).
 import "dotenv/config";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "../src/lib/auth/password";
 import { prisma } from "../src/lib/db";
 import { addDays, colomboDateString, colomboDateTime } from "../src/lib/dates";
 import type { ReservationStatus, ResourceType, Role } from "../src/generated/prisma/client";
@@ -34,7 +34,7 @@ const resources: {
 ];
 
 async function main() {
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+  const passwordHash = await hashPassword(DEMO_PASSWORD);
 
   const userIds: Record<string, string> = {};
   for (const user of users) {
