@@ -6,7 +6,11 @@ function createPrismaClient(): PrismaClient {
   if (!connectionString) {
     throw new Error("DATABASE_URL is not set. Copy .env.example to .env and fill it in.");
   }
-  return new PrismaClient({ adapter: new PrismaPg({ connectionString }) });
+  // The pg adapter sends timestamps as UTC text without an offset, which PostgreSQL
+  // interprets in the session time zone. Pin the session to UTC so stored instants are
+  // correct even when the server's default time zone is local (e.g. Asia/Colombo).
+  const adapter = new PrismaPg({ connectionString, options: "-c TimeZone=UTC" });
+  return new PrismaClient({ adapter });
 }
 
 // Reuse one client across Next.js dev hot reloads; otherwise every reload
