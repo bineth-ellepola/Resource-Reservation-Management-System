@@ -44,3 +44,15 @@ export const resourceFiltersSchema = z.object({
 });
 
 export type ResourceFilters = z.infer<typeof resourceFiltersSchema>;
+
+export const AVAILABILITY_VIEWS = ["day", "week"] as const;
+
+/** Availability URL params. A missing or invalid date means "today" (decided by the service). */
+export const availabilityQuerySchema = z.object({
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional()
+    .catch(undefined),
+  view: z.enum(AVAILABILITY_VIEWS).default("day").catch("day"),
+});
