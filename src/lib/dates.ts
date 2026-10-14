@@ -1,0 +1,38 @@
+// Timezone helpers. The database stores precise instants (timestamptz); the UI
+// works in Asia/Colombo wall-clock time. Sri Lanka is UTC+05:30 all year (no DST),
+// but conversion still goes through an explicit offset rather than the server's
+// local timezone, which may differ (e.g. UTC in CI).
+
+export const APP_TIME_ZONE = "Asia/Colombo";
+const COLOMBO_OFFSET = "+05:30";
+
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+/** Today's calendar date in Asia/Colombo as YYYY-MM-DD. */
+export function colomboDateString(now: Date = new Date()): string {
+  // en-CA formats dates as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", { timeZone: APP_TIME_ZONE }).format(now);
+}
+
+/** Adds whole calendar days to a YYYY-MM-DD string. */
+export function addDays(date: string, days: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + days)).toISOString().slice(0, 10);
+}
+
+/**
+ * Converts a Colombo wall-clock date (YYYY-MM-DD) and time (HH:mm) to an instant.
+ * Throws on malformed or impossible input such as 2026-02-30.
+ */
+export function colomboDateTime(date: string, time: string): Date {
+  if (!DATE_PATTERN.test(date) || !TIME_PATTERN.test(time)) {
+    throw new RangeError(`Invalid Colombo date/time: "${date} ${time}"`);
+  }
+  const instant = new Date(`${date}T${time}:00${COLOMBO_OFFSET}`);
+  // Date silently rolls 2026-02-30 over to March; reject that by round-tripping.
+  if (Number.isNaN(instant.getTime()) || colomboDateString(instant) !== date) {
+    throw new RangeError(`Invalid Colombo date/time: "${date} ${time}"`);
+  }
+  return instant;
+}
