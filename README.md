@@ -355,12 +355,12 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-03-auth`. **Depends on:** RRMS-02.
 
-- [ ] RRMS-03.1 Add seeded `ADMIN` and `USER` credentials with bcrypt password checking.
-- [ ] RRMS-03.2 Implement server-backed login/logout and secure sessions.
-- [ ] RRMS-03.3 Build clean login UI and protected application layout/navbar.
-- [ ] RRMS-03.4 Restrict resource mutations to admins; booking actions to authenticated users.
-- [ ] RRMS-03.5 Enforce reservation ownership on cancel; prevent role escalation and trusting submitted user IDs.
-- [ ] RRMS-03.6 Test anonymous access, wrong password, role restrictions and ownership.
+- [x] RRMS-03.1 Add seeded `ADMIN` and `USER` credentials with bcrypt password checking.
+- [x] RRMS-03.2 Implement server-backed login/logout and secure sessions.
+- [x] RRMS-03.3 Build clean login UI and protected application layout/navbar.
+- [x] RRMS-03.4 Restrict resource mutations to admins; booking actions to authenticated users. (Guards in `src/server/authz.ts`, unit-tested; each RRMS-04/05 service calls them and gets its own integration tests.)
+- [x] RRMS-03.5 Enforce reservation ownership on cancel; prevent role escalation and trusting submitted user IDs. (Role is reloaded from the database on every request; the acting user always comes from the session. The cancel service in RRMS-05 applies `assertCanManageReservation`.)
+- [x] RRMS-03.6 Test anonymous access, wrong password, role restrictions and ownership.
 
 **Done when:** both demo accounts work, server-side permissions are effective even via direct request. Suggested commits: `feat(RRMS-03): implement credentials authentication`, `test(RRMS-03): cover role and ownership guards`.
 
@@ -518,11 +518,14 @@ npm run db:seed
 # Start local app
 npm run dev
 
-# Quality gate (only if test script is implemented)
+# Quality gate
 npm run lint
-npx tsc --noEmit
+npm run typecheck
 npm test
 npm run build
+
+# HTTP smoke test of login/session/access control (needs npm run dev running and a seeded DB)
+npm run smoke:auth
 
 # Check current branch and commits
 git status
@@ -530,7 +533,7 @@ git branch --show-current
 git log -5 --format=full
 ```
 
-Demo accounts created by `npm run db:seed` (**local demo only**; all share the password `Demo@12345`). Login is implemented in RRMS-03; until then the accounts exist only in the database.
+Demo accounts created by `npm run db:seed` (**local demo only**; all share the password `Demo@12345`). Sign in at <http://localhost:3000/login>.
 
 | Email | Role | Purpose |
 | --- | --- | --- |
@@ -574,9 +577,12 @@ Keep the video within 3–5 minutes and make the text readable. Use a local runn
 5. **No deployment:** Local setup, reproducible migrations and a demo recording are the delivery mechanism.
 6. **UTC database sessions:** `@prisma/adapter-pg` sends timestamps as UTC text without an offset, which PostgreSQL interprets in the session time zone. On a server whose default is `Asia/Colombo` every instant was stored 5h30m early, and Prisma's symmetric read-back hid it. `src/lib/db.ts` sets `TimeZone=UTC` on every connection; `tests/integration/timestamps.test.ts` fails without it.
 7. **Concurrent conflicts surface as `23P01` or `40P01`:** With several simultaneous inserts for one slot, PostgreSQL may resolve the waiting cycle with its deadlock detector, so losers can fail with `40P01` (deadlock_detected) instead of `23P01` (exclusion_violation). Only one booking is ever stored. The booking service (RRMS-05) must map both codes to a "slot already taken" conflict.
-8. **Authentication approach and tradeoffs:** TODO after implementation.
+8. **Authentication approach and tradeoffs:** Credentials only, with bcrypt (cost 12) password hashes. The session is a signed HS256 JWT (`jose`, `AUTH_SECRET`) in an httpOnly, SameSite=Lax cookie (Secure in production) that expires after 8 hours and holds only the user ID. The user and role are reloaded from the database on every request (`getCurrentUser` in `src/lib/session.ts`), so demotions and deleted accounts take effect immediately. All checks run server-side in a Data Access Layer and in services via `src/server/authz.ts`; there is no Proxy-only protection. Login returns one generic error and compares against a dummy hash for unknown emails, so accounts cannot be enumerated. Admins may cancel any reservation; users only their own. `next-auth` was not used because its credentials-capable v5 is still beta.
 9. **Validation/testing choices:** TODO after implementation.
-10. **Known limitations:** TODO after testing.
+10. **Known limitations:**
+    - Sessions are stateless: signing out deletes the cookie, but a copied token stays valid until it expires (8h). Server-side revocation would need a session table.
+    - No login rate limiting or account lockout (acceptable for a local demo; required before any real deployment).
+    - No self-service registration; accounts come from the seed.
 
 ### Useful references
 
