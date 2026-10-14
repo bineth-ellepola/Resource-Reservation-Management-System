@@ -14,7 +14,8 @@
     "db:generate": "prisma generate",
     "postinstall": "prisma generate",
     "db:seed": "prisma db seed",
-    "smoke:auth": "node scripts/smoke-auth.mjs"
+    "smoke:auth": "node scripts/smoke-auth.mjs",
+    "smoke:resources": "node scripts/smoke-resources.mjs"
   },
   "dependencies": {
     "@prisma/adapter-pg": "7.10.0",
