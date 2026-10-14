@@ -368,12 +368,12 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-04-resources`. **Depends on:** RRMS-03.
 
-- [ ] RRMS-04.1 Resource list/grid with search/filter by type/location/status.
-- [ ] RRMS-04.2 Resource create form (admin) with Zod/server validation.
-- [ ] RRMS-04.3 Resource update and safe deactivate/reactivate (admin).
-- [ ] RRMS-04.4 Resource details showing capacity and upcoming reservations.
-- [ ] RRMS-04.5 Empty/loading/error states and responsive layout.
-- [ ] RRMS-04.6 Test invalid capacity, blank name, unauthorized edits, inactive behavior.
+- [x] RRMS-04.1 Resource list/grid with search/filter by type/location/status.
+- [x] RRMS-04.2 Resource create form (admin) with Zod/server validation.
+- [x] RRMS-04.3 Resource update and safe deactivate/reactivate (admin).
+- [x] RRMS-04.4 Resource details showing capacity and upcoming reservations.
+- [x] RRMS-04.5 Empty/loading/error states and responsive layout.
+- [x] RRMS-04.6 Test invalid capacity, blank name, unauthorized edits, inactive behavior.
 
 **Done when:** admin can manage resources, regular user only browses. Suggested commits: `feat(RRMS-04): implement resource CRUD`, `test(RRMS-04): verify resource access controls`.
 
@@ -527,6 +527,13 @@ npm run build
 # HTTP smoke test of login/session/access control (needs npm run dev running and a seeded DB)
 npm run smoke:auth
 
+# HTTP smoke test of resource management. It WRITES data, so run it only against a
+# server that uses the disposable test database (it can run alongside npm run dev):
+set -a; . ./.env; set +a
+DATABASE_URL="$TEST_DATABASE_URL" npm run db:seed
+npm run build && DATABASE_URL="$TEST_DATABASE_URL" npx next start -p 3001   # separate terminal
+npm run smoke:resources -- http://localhost:3001
+
 # Check current branch and commits
 git status
 git branch --show-current
@@ -577,9 +584,10 @@ Keep the video within 3–5 minutes and make the text readable. Use a local runn
 5. **No deployment:** Local setup, reproducible migrations and a demo recording are the delivery mechanism.
 6. **UTC database sessions:** `@prisma/adapter-pg` sends timestamps as UTC text without an offset, which PostgreSQL interprets in the session time zone. On a server whose default is `Asia/Colombo` every instant was stored 5h30m early, and Prisma's symmetric read-back hid it. `src/lib/db.ts` sets `TimeZone=UTC` on every connection; `tests/integration/timestamps.test.ts` fails without it.
 7. **Concurrent conflicts surface as `23P01` or `40P01`:** With several simultaneous inserts for one slot, PostgreSQL may resolve the waiting cycle with its deadlock detector, so losers can fail with `40P01` (deadlock_detected) instead of `23P01` (exclusion_violation). Only one booking is ever stored. The booking service (RRMS-05) must map both codes to a "slot already taken" conflict.
-8. **Authentication approach and tradeoffs:** Credentials only, with bcrypt (cost 12) password hashes. The session is a signed HS256 JWT (`jose`, `AUTH_SECRET`) in an httpOnly, SameSite=Lax cookie (Secure in production) that expires after 8 hours and holds only the user ID. The user and role are reloaded from the database on every request (`getCurrentUser` in `src/lib/session.ts`), so demotions and deleted accounts take effect immediately. All checks run server-side in a Data Access Layer and in services via `src/server/authz.ts`; there is no Proxy-only protection. Login returns one generic error and compares against a dummy hash for unknown emails, so accounts cannot be enumerated. Admins may cancel any reservation; users only their own. `next-auth` was not used because its credentials-capable v5 is still beta.
-9. **Validation/testing choices:** TODO after implementation.
-10. **Known limitations:**
+8. **Resource visibility and lifecycle:** Regular users only ever see active resources (inactive ones are excluded from lists and their pages return not-found, whatever filters are sent). Admins can filter by status. Resources are never deleted: deactivation keeps booking history and existing bookings, and new bookings for inactive resources must be refused by the booking service (RRMS-05). On a resource page everyone sees when it is booked, but who booked it and why is shown only to admins and the booker.
+9. **Authentication approach and tradeoffs:** Credentials only, with bcrypt (cost 12) password hashes. The session is a signed HS256 JWT (`jose`, `AUTH_SECRET`) in an httpOnly, SameSite=Lax cookie (Secure in production) that expires after 8 hours and holds only the user ID. The user and role are reloaded from the database on every request (`getCurrentUser` in `src/lib/session.ts`), so demotions and deleted accounts take effect immediately. All checks run server-side in a Data Access Layer and in services via `src/server/authz.ts`; there is no Proxy-only protection. Login returns one generic error and compares against a dummy hash for unknown emails, so accounts cannot be enumerated. Admins may cancel any reservation; users only their own. `next-auth` was not used because its credentials-capable v5 is still beta.
+10. **Validation/testing choices:** TODO after implementation.
+11. **Known limitations:**
     - Sessions are stateless: signing out deletes the cookie, but a copied token stays valid until it expires (8h). Server-side revocation would need a session table.
     - No login rate limiting or account lockout (acceptable for a local demo; required before any real deployment).
     - No self-service registration; accounts come from the seed.
