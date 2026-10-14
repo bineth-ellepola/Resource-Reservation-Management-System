@@ -273,7 +273,7 @@ ALTER TABLE "Reservation"
 
 Produce a shareable diagram using <https://dbdiagram.io> or draw.io. Put the public/viewable **actual** URL in `docs/ERD.md` and this README once created. Include columns, PKs, FKs, cardinalities and statuses. If dbdiagram DBML cannot represent exclusion constraints, annotate the constraint in the diagram description and point to the SQL migration. **Do not invent the URL.**
 
-ERD link: **TODO — add real accessible link before submission**.
+ERD: [`docs/ERD.md`](docs/ERD.md) contains the diagram (Mermaid, rendered by GitHub), relationships, constraints, indexes and DBML source for dbdiagram.io. Public dbdiagram.io link: **TODO — add real accessible link before submission**.
 
 ## 6. Git workflow: one branch for EACH task
 
@@ -342,12 +342,12 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-02-schema-erd`. **Depends on:** RRMS-01.
 
-- [ ] RRMS-02.1 Implement User, Resource, Reservation schema, statuses and relations.
-- [ ] RRMS-02.2 Generate migration; insert valid-time CHECK and partial GiST exclusion constraint **into a committed SQL migration**.
-- [ ] RRMS-02.3 Apply migrations to a fresh local DB; inspect actual DB constraints.
-- [ ] RRMS-02.4 Implement idempotent demo seed: admin, user, 6 varied resources and sample confirmed/cancelled reservations; hash passwords.
-- [ ] RRMS-02.5 Create shareable ER diagram; document relationships, indexes and constraint.
-- [ ] RRMS-02.6 Test DB directly: overlapping confirmed insert fails; adjacent intervals succeed; cancelled records don't block.
+- [x] RRMS-02.1 Implement User, Resource, Reservation schema, statuses and relations.
+- [x] RRMS-02.2 Generate migration; insert valid-time CHECK and partial GiST exclusion constraint **into a committed SQL migration**.
+- [x] RRMS-02.3 Apply migrations to a fresh local DB; inspect actual DB constraints.
+- [x] RRMS-02.4 Implement idempotent demo seed: admin, user, 6 varied resources and sample confirmed/cancelled reservations; hash passwords.
+- [ ] RRMS-02.5 Create shareable ER diagram; document relationships, indexes and constraint. (Diagram, DBML and documentation are in `docs/ERD.md`; the public dbdiagram.io link is still to be created.)
+- [x] RRMS-02.6 Test DB directly: overlapping confirmed insert fails; adjacent intervals succeed; cancelled records don't block.
 
 **Done when:** fresh database reset/migrate/seed reproduces demo data and database itself prevents overlap. Suggested commits: `feat(RRMS-02): add reservation schema and exclusions`, `chore(RRMS-02): seed demo resources`, `docs(RRMS-02): add ER diagram`.
 
@@ -512,8 +512,8 @@ npm install
 # Prepare local DB (once .env and prisma config are correct)
 npx prisma migrate dev
 
-# Seed demo users/resources (after seed script is configured)
-npx prisma db seed
+# Seed demo users/resources/reservations (idempotent; safe to re-run)
+npm run db:seed
 
 # Start local app
 npm run dev
@@ -530,7 +530,15 @@ git branch --show-current
 git log -5 --format=full
 ```
 
-Demo-account credentials: **TODO: record seeded test emails and clearly marked local-only passwords in README only after implementing seed; never use real credentials.**
+Demo accounts created by `npm run db:seed` (**local demo only**; all share the password `Demo@12345`). Login is implemented in RRMS-03; until then the accounts exist only in the database.
+
+| Email | Role | Purpose |
+| --- | --- | --- |
+| `admin@rrms.local` | ADMIN | Manage resources, see all bookings |
+| `user@rrms.local` | USER | Browse, book and cancel own bookings |
+| `user2@rrms.local` | USER | Second user for ownership checks |
+
+The seed also creates 6 resources (one inactive) and 6 reservations dated relative to today in Asia/Colombo: back-to-back bookings, a cancelled booking overlapping a confirmed one, and a past booking.
 
 ## 11. Demo video outline (3–5 minutes)
 
@@ -564,9 +572,11 @@ Keep the video within 3–5 minutes and make the text readable. Use a local runn
 3. **Dates:** Save precise instants (`timestamptz`), use end-exclusive ranges, and display timezone explicitly.
 4. **Scope:** Three tables and simple availability timeline reduce risk of unfinished extras.
 5. **No deployment:** Local setup, reproducible migrations and a demo recording are the delivery mechanism.
-6. **Authentication approach and tradeoffs:** TODO after implementation.
-7. **Validation/testing choices:** TODO after implementation.
-8. **Known limitations:** TODO after testing.
+6. **UTC database sessions:** `@prisma/adapter-pg` sends timestamps as UTC text without an offset, which PostgreSQL interprets in the session time zone. On a server whose default is `Asia/Colombo` every instant was stored 5h30m early, and Prisma's symmetric read-back hid it. `src/lib/db.ts` sets `TimeZone=UTC` on every connection; `tests/integration/timestamps.test.ts` fails without it.
+7. **Concurrent conflicts surface as `23P01` or `40P01`:** With several simultaneous inserts for one slot, PostgreSQL may resolve the waiting cycle with its deadlock detector, so losers can fail with `40P01` (deadlock_detected) instead of `23P01` (exclusion_violation). Only one booking is ever stored. The booking service (RRMS-05) must map both codes to a "slot already taken" conflict.
+8. **Authentication approach and tradeoffs:** TODO after implementation.
+9. **Validation/testing choices:** TODO after implementation.
+10. **Known limitations:** TODO after testing.
 
 ### Useful references
 
