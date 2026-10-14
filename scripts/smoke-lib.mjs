@@ -34,6 +34,22 @@ export function actionFields(html, marker) {
   return fields;
 }
 
+/**
+ * Collects the hidden server-action fields of the form whose bound arguments contain
+ * `value` (e.g. a reservation ID). Client-component forms are streamed out of order, so
+ * a form cannot be located by its position relative to the visible text.
+ */
+export function actionFieldsWithBoundValue(html, value) {
+  for (const match of html.matchAll(/<input type="hidden" name="\$ACTION_[^"]*" value="([^"]*)"\/>/g)) {
+    if (decode(match[1]).includes(value)) {
+      const start = html.lastIndexOf("<form", match.index);
+      const end = html.indexOf("</form>", match.index);
+      return actionFields(html.slice(start, end));
+    }
+  }
+  return new FormData();
+}
+
 export async function get(path, cookie) {
   const res = await fetch(`${BASE}${path}`, { headers: cookie ? { cookie } : {}, redirect: "manual" });
   return { status: res.status, location: res.headers.get("location"), body: res.status === 200 ? await res.text() : "" };

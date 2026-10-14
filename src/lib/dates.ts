@@ -52,6 +52,36 @@ export function formatColomboRange(start: Date, end: Date): string {
   return `${startDay}, ${formatColomboTime(start)} – ${endDay}, ${formatColomboTime(end)}`;
 }
 
+const DATETIME_LOCAL_PATTERN = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2})$/;
+
+/**
+ * Parses an <input type="datetime-local"> value ("YYYY-MM-DDTHH:mm") as Asia/Colombo
+ * wall-clock time. Returns null for malformed or impossible values.
+ */
+export function parseColomboDateTimeLocal(value: string): Date | null {
+  const match = DATETIME_LOCAL_PATTERN.exec(value);
+  if (!match) {
+    return null;
+  }
+  try {
+    return colomboDateTime(match[1], match[2]);
+  } catch {
+    return null;
+  }
+}
+
+/** Formats an instant as a datetime-local value in Asia/Colombo ("YYYY-MM-DDTHH:mm"). */
+export function toColomboDateTimeLocal(instant: Date): string {
+  return `${colomboDateString(instant)}T${formatColomboTime(instant)}`;
+}
+
+/** The next full hour on the Colombo clock (e.g. 09:17 → 10:00), used as a default booking start. */
+export function startOfNextColomboHour(now: Date = new Date()): Date {
+  const local = toColomboDateTimeLocal(now);
+  const hourStart = colomboDateTime(local.slice(0, 10), `${local.slice(11, 13)}:00`);
+  return new Date(hourStart.getTime() + 60 * 60 * 1000);
+}
+
 /** Adds whole calendar days to a YYYY-MM-DD string. */
 export function addDays(date: string, days: number): string {
   const [year, month, day] = date.split("-").map(Number);

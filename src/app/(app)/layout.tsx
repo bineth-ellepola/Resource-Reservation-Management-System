@@ -20,6 +20,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
             <Link href="/resources" className="text-sm text-slate-700 hover:text-slate-900">
               Resources
             </Link>
+            <Link href="/reservations" className="text-sm text-slate-700 hover:text-slate-900">
+              Bookings
+            </Link>
           </nav>
           <Suspense fallback={<span className="text-sm text-slate-400">Loading…</span>}>
             <UserMenu />

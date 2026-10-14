@@ -10,6 +10,14 @@ export class NotFoundError extends Error {
   }
 }
 
+/** The request is valid but clashes with current data, e.g. the slot is already booked (HTTP 409). */
+export class ConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ConflictError";
+  }
+}
+
 export type FieldErrors = Record<string, string[] | undefined>;
 
 export class ValidationError extends Error {

@@ -34,14 +34,24 @@ export default async function ResourceDetailsPage({ params }: PageProps<"/resour
           </h1>
           <p className="mt-1 text-sm text-slate-600">{RESOURCE_TYPE_LABELS[resource.type]}</p>
         </div>
-        {isAdmin && (
-          <div className="flex items-start gap-2">
-            <Link href={`/resources/${resource.id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50">
-              Edit
+        <div className="flex flex-wrap items-start gap-2">
+          {resource.isActive && (
+            <Link
+              href={`/reservations/new?resourceId=${resource.id}`}
+              className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+            >
+              Book this resource
             </Link>
-            <ResourceActiveToggle resourceId={resource.id} isActive={resource.isActive} />
-          </div>
-        )}
+          )}
+          {isAdmin && (
+            <>
+              <Link href={`/resources/${resource.id}/edit`} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium hover:bg-slate-50">
+                Edit
+              </Link>
+              <ResourceActiveToggle resourceId={resource.id} isActive={resource.isActive} />
+            </>
+          )}
+        </div>
       </div>
 
       {!resource.isActive && (
