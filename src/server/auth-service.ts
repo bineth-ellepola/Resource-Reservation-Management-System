@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { isUuid } from "@/lib/ids";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import type { Role } from "@/generated/prisma/client";
 
@@ -40,10 +41,8 @@ export async function authenticate(email: string, password: string): Promise<Ses
  * immediately instead of when the token expires.
  */
 export async function findSessionUser(userId: string): Promise<SessionUser | null> {
-  if (!UUID_PATTERN.test(userId)) {
+  if (!isUuid(userId)) {
     return null;
   }
   return prisma.user.findUnique({ where: { id: userId }, select: sessionUserSelect });
 }
-
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
