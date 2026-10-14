@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ReservationForm } from "@/components/reservation-form";
-import { startOfNextColomboHour, toColomboDateTimeLocal } from "@/lib/dates";
+import { parseColomboDateTimeLocal, startOfNextColomboHour, toColomboDateTimeLocal } from "@/lib/dates";
 import { requireUser } from "@/lib/session";
 import { listResources } from "@/server/resource-service";
 
@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "New booking" };
 
 export default async function NewReservationPage({ searchParams }: PageProps<"/reservations/new">) {
   const user = await requireUser();
-  const { resourceId } = await searchParams;
+  const { resourceId, start: startParam, end: endParam } = await searchParams;
   const resources = await listResources(user, { status: "active" });
 
   if (resources.length === 0) {
@@ -24,8 +24,15 @@ export default async function NewReservationPage({ searchParams }: PageProps<"/r
   }
 
   const now = new Date();
-  const start = startOfNextColomboHour(now);
   const preselected = resources.find((r) => r.id === resourceId)?.id ?? "";
+
+  // A slot picked from the availability view arrives as ?start=…&end=… (Colombo datetime-local).
+  // It only pre-fills the form; the service validates the submitted values again.
+  const requestedStart = typeof startParam === "string" ? parseColomboDateTimeLocal(startParam) : null;
+  const requestedEnd = typeof endParam === "string" ? parseColomboDateTimeLocal(endParam) : null;
+  const usePicked = requestedStart && requestedEnd && requestedStart > now && requestedEnd > requestedStart;
+  const start = usePicked ? requestedStart : startOfNextColomboHour(now);
+  const end = usePicked ? requestedEnd : new Date(start.getTime() + 60 * 60 * 1000);
 
   return (
     <section className="space-y-6">
@@ -40,7 +47,7 @@ export default async function NewReservationPage({ searchParams }: PageProps<"/r
         defaults={{
           resourceId: preselected,
           start: toColomboDateTimeLocal(start),
-          end: toColomboDateTimeLocal(new Date(start.getTime() + 60 * 60 * 1000)),
+          end: toColomboDateTimeLocal(end),
         }}
         minStart={toColomboDateTimeLocal(now)}
       />
