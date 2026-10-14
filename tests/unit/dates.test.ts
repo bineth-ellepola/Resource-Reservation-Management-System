@@ -5,6 +5,7 @@ import {
   colomboDateTime,
   formatColomboRange,
   parseColomboDateTimeLocal,
+  startOfNextColomboHour,
   toColomboDateTimeLocal,
 } from "@/lib/dates";
 
@@ -76,6 +77,18 @@ describe("datetime-local values", () => {
 
   it("formats an instant back to a Colombo datetime-local value", () => {
     expect(toColomboDateTimeLocal(new Date("2026-10-14T20:00:00Z"))).toBe("2026-10-15T01:30");
+  });
+});
+
+describe("startOfNextColomboHour", () => {
+  it("rounds up to the next full hour on the Colombo clock, not the UTC clock", () => {
+    // 03:47Z is 09:17 in Colombo; the next Colombo hour is 10:00 = 04:30Z.
+    expect(startOfNextColomboHour(new Date("2026-10-15T03:47:00Z")).toISOString()).toBe("2026-10-15T04:30:00.000Z");
+  });
+
+  it("moves to the next day after 23:00", () => {
+    // 18:00Z is 23:30 in Colombo; next hour is 00:00 on the 16th.
+    expect(toColomboDateTimeLocal(startOfNextColomboHour(new Date("2026-10-15T18:00:00Z")))).toBe("2026-10-16T00:00");
   });
 });
 

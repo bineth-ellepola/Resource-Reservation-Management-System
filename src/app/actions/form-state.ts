@@ -1,5 +1,5 @@
 import { AuthError } from "@/server/authz";
-import { NotFoundError, ValidationError, type FieldErrors } from "@/server/errors";
+import { ConflictError, NotFoundError, ValidationError, type FieldErrors } from "@/server/errors";
 
 /** State returned by form server actions to useActionState. */
 export type FormState = {
@@ -22,7 +22,7 @@ export function toFormState(error: unknown, values?: Record<string, string>): Fo
   if (error instanceof ValidationError) {
     return { error: error.message, fieldErrors: error.fieldErrors, values };
   }
-  if (error instanceof AuthError || error instanceof NotFoundError) {
+  if (error instanceof AuthError || error instanceof NotFoundError || error instanceof ConflictError) {
     return { error: error.message, values };
   }
   throw error;
