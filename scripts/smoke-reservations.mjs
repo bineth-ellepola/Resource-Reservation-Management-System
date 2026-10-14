@@ -37,6 +37,27 @@ check("booking redirects with a confirmation", first.status === 303 && first.loc
 const mine = await get("/reservations?notice=booked", user);
 check("booking appears under My bookings", mine.body.includes(`smoke-${run}-A`) && mine.body.includes("Booking confirmed."));
 
+// Availability view reflects the booking (RRMS-06)
+const dayView = (cookie) => get(`/resources/${BOARD_ROOM_ID}?date=${day}&view=day`, cookie);
+// Only look inside that day's availability section: the page's "Upcoming bookings" list
+// can contain other bookings with the same times (e.g. the seeded 09:00–10:00 booking).
+const daySection = (html) => {
+  const i = html.indexOf(`<section aria-labelledby="day-${day}"`);
+  return i === -1 ? "" : html.slice(i, html.indexOf("</section>", i));
+};
+const bookedRow = (html, label) => new RegExp(`09:00–10:00</span><span[^>]*>${label}<`).test(daySection(html));
+const forOwner = (await dayView(user)).body;
+check("availability shows the new booking as 'Your booking' for its owner", bookedRow(forOwner, "Your booking"));
+const forOther = (await dayView(user2)).body;
+check("availability shows it as 'Booked' (no name) for other users", bookedRow(forOther, "Booked") && !forOther.includes("Booked by Demo User"));
+const week = (await get(`/resources/${BOARD_ROOM_ID}?date=${day}&view=week`, user)).body;
+check("week view lists seven days", (week.match(/<section aria-labelledby="day-/g) ?? []).length === 7);
+const bookLink = forOther.match(/href="(\/reservations\/new\?resourceId=[^"]+&amp;start=[^"]+&amp;end=[^"]+)"/)?.[1]?.replaceAll("&amp;", "&");
+check("free periods offer a prefilled Book link", Boolean(bookLink));
+const prefilled = bookLink ? (await get(bookLink, user2)).body : "";
+const linkStart = bookLink ? new URL(bookLink, "http://x").searchParams.get("start") : null;
+check("Book link opens the form with that slot filled in", Boolean(linkStart) && prefilled.includes(`value="${linkStart}"`));
+
 // Conflicts and boundaries
 const overlap = await bookAs(user2, { start: at("09:30"), end: at("10:30"), purpose: `smoke-${run}-overlap` });
 check("overlapping booking by another user gets the conflict message", overlap.body.includes("Board Room A is already booked for part of that time") && overlap.status !== 303);
@@ -83,6 +104,16 @@ const forgedCancel = await submit("/reservations", cancelFields, {}, user2);
 check("another user replaying the cancel action is refused", forgedCancel.body.includes("You can only manage your own reservations."));
 const cancelled = await submit("/reservations", cancelFields, {}, user);
 check("owner cancel redirects with a notice", cancelled.status === 303 && cancelled.location === "/reservations?notice=cancelled");
+const afterCancelOwner = (await dayView(user)).body;
+const afterCancelOther = (await dayView(user2)).body;
+const slotText = (html) => {
+  return daySection(html).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").match(/\d\d:\d\d–\d\d:\d\d \S+( \S+)?/g)?.slice(0, 3).join(" | ");
+};
+check(
+  "after cancelling, availability no longer shows the slot as booked",
+  !bookedRow(afterCancelOwner, "Your booking") && !bookedRow(afterCancelOther, "Booked"),
+  `owner: ${slotText(afterCancelOwner)} / other: ${slotText(afterCancelOther)}`,
+);
 const again = await submit("/reservations", cancelFields, {}, user);
 check("cancelling twice is refused", again.body.includes("This booking is already cancelled."));
 const rebook = await bookAs(user2, { start: at("09:00"), end: at("10:00"), purpose: `smoke-${run}-rebook` });
