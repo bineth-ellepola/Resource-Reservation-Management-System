@@ -381,15 +381,15 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-05-reservations`. **Depends on:** RRMS-02 and RRMS-03, preferably RRMS-04.
 
-- [ ] RRMS-05.1 Create reservation validation schema and secure booking service.
-- [ ] RRMS-05.2 Parse timezone-aware start/end; reject past start, invalid ranges and inactive resources.
-- [ ] RRMS-05.3 Create confirmed reservation; translate DB exclusion violation (`23P01`) into clear conflict error.
-- [ ] RRMS-05.4 List my upcoming/past bookings and admin all-bookings listing.
-- [ ] RRMS-05.5 Cancel own reservation by updating status to `CANCELLED` (retain record/history).
-- [ ] RRMS-05.6 Build booking form, confirmation/error UX and reservation cards/table.
-- [ ] RRMS-05.7 Verify boundary behavior: same resource overlapping fails; adjacent succeeds; different resource succeeds; cancelled slot reusable.
-- [ ] RRMS-05.8 Write concurrent-insert integration test with **two independently attempted requests** for same slot; assert exactly one succeeds, one fails, and DB ends with one confirmed reservation.
-- [ ] RRMS-05.9 Ensure the same rules hold when requests bypass the UI.
+- [x] RRMS-05.1 Create reservation validation schema and secure booking service.
+- [x] RRMS-05.2 Parse timezone-aware start/end; reject past start, invalid ranges and inactive resources.
+- [x] RRMS-05.3 Create confirmed reservation; translate DB exclusion violation (`23P01`) into clear conflict error.
+- [x] RRMS-05.4 List my upcoming/past bookings and admin all-bookings listing.
+- [x] RRMS-05.5 Cancel own reservation by updating status to `CANCELLED` (retain record/history).
+- [x] RRMS-05.6 Build booking form, confirmation/error UX and reservation cards/table.
+- [x] RRMS-05.7 Verify boundary behavior: same resource overlapping fails; adjacent succeeds; different resource succeeds; cancelled slot reusable.
+- [x] RRMS-05.8 Write concurrent-insert integration test with **two independently attempted requests** for same slot; assert exactly one succeeds, one fails, and DB ends with one confirmed reservation.
+- [x] RRMS-05.9 Ensure the same rules hold when requests bypass the UI.
 
 **Done when:** reservation workflow works end-to-end and race test passes against real PostgreSQL. Suggested commits: `feat(RRMS-05): implement booking and cancellation`, `fix(RRMS-05): surface database booking conflicts`, `test(RRMS-05): cover concurrent reservations`.
 
@@ -533,6 +533,7 @@ set -a; . ./.env; set +a
 DATABASE_URL="$TEST_DATABASE_URL" npm run db:seed
 npm run build && DATABASE_URL="$TEST_DATABASE_URL" npx next start -p 3001   # separate terminal
 npm run smoke:resources -- http://localhost:3001
+npm run smoke:reservations -- http://localhost:3001   # same server; also writes data
 
 # Check current branch and commits
 git status
@@ -583,14 +584,17 @@ Keep the video within 3–5 minutes and make the text readable. Use a local runn
 4. **Scope:** Three tables and simple availability timeline reduce risk of unfinished extras.
 5. **No deployment:** Local setup, reproducible migrations and a demo recording are the delivery mechanism.
 6. **UTC database sessions:** `@prisma/adapter-pg` sends timestamps as UTC text without an offset, which PostgreSQL interprets in the session time zone. On a server whose default is `Asia/Colombo` every instant was stored 5h30m early, and Prisma's symmetric read-back hid it. `src/lib/db.ts` sets `TimeZone=UTC` on every connection; `tests/integration/timestamps.test.ts` fails without it.
-7. **Concurrent conflicts surface as `23P01` or `40P01`:** With several simultaneous inserts for one slot, PostgreSQL may resolve the waiting cycle with its deadlock detector, so losers can fail with `40P01` (deadlock_detected) instead of `23P01` (exclusion_violation). Only one booking is ever stored. The booking service (RRMS-05) must map both codes to a "slot already taken" conflict.
-8. **Resource visibility and lifecycle:** Regular users only ever see active resources (inactive ones are excluded from lists and their pages return not-found, whatever filters are sent). Admins can filter by status. Resources are never deleted: deactivation keeps booking history and existing bookings, and new bookings for inactive resources must be refused by the booking service (RRMS-05). On a resource page everyone sees when it is booked, but who booked it and why is shown only to admins and the booker.
+7. **Concurrent conflicts surface as `23P01` or `40P01`:** With several simultaneous inserts for one slot, PostgreSQL may resolve the waiting cycle with its deadlock detector, so losers can fail with `40P01` (deadlock_detected) instead of `23P01` (exclusion_violation). Only one booking is ever stored. `src/server/db-errors.ts` maps both codes to a `ConflictError` (HTTP 409 semantics) whose message names the clashing Colombo time slots but not who booked them. With `@prisma/adapter-pg` the SQLSTATE is not in `error.code` (Prisma reports the generic `P2039`) but in `meta.driverAdapterError.cause.originalCode`, which is what the mapper reads.
+8. **Resource visibility and lifecycle:** Regular users only ever see active resources (inactive ones are excluded from lists and their pages return not-found, whatever filters are sent). Admins can filter by status. Resources are never deleted: deactivation keeps booking history and existing bookings, and the booking service refuses new bookings for inactive resources. On a resource page everyone sees when it is booked, but who booked it and why is shown only to admins and the booker.
 9. **Authentication approach and tradeoffs:** Credentials only, with bcrypt (cost 12) password hashes. The session is a signed HS256 JWT (`jose`, `AUTH_SECRET`) in an httpOnly, SameSite=Lax cookie (Secure in production) that expires after 8 hours and holds only the user ID. The user and role are reloaded from the database on every request (`getCurrentUser` in `src/lib/session.ts`), so demotions and deleted accounts take effect immediately. All checks run server-side in a Data Access Layer and in services via `src/server/authz.ts`; there is no Proxy-only protection. Login returns one generic error and compares against a dummy hash for unknown emails, so accounts cannot be enumerated. Admins may cancel any reservation; users only their own. `next-auth` was not used because its credentials-capable v5 is still beta.
-10. **Validation/testing choices:** TODO after implementation.
+10. **Validation/testing choices:** Every input is validated with Zod inside the service layer (`src/server/*-service.ts`), so server actions, pages and any direct request get identical rules; schemas never contain `userId` or `status`, and the acting user always comes from the session. Booking times are `datetime-local` values interpreted as Asia/Colombo time (bookings may cross midnight, up to 14 days). "Start in the future", inactive resources and ownership are checked in the service; overlap is left to PostgreSQL. Tests run against real PostgreSQL (`rrms_test`): raw-SQL constraint tests, service integration tests (overlap shapes, adjacency, other resources, cross-midnight, cancelled-slot reuse, a 9-way concurrent race through the service, ownership) and HTTP smoke tests that replay server actions without the UI, including two simultaneous HTTP booking requests. Key tests were mutation-checked (removing the guard makes them fail).
 11. **Known limitations:**
     - Sessions are stateless: signing out deletes the cookie, but a copied token stays valid until it expires (8h). Server-side revocation would need a session table.
     - No login rate limiting or account lockout (acceptable for a local demo; required before any real deployment).
     - No self-service registration; accounts come from the seed.
+    - Bookings cannot be edited: cancel and rebook instead (README 5.2 allows this).
+    - The inactive-resource check and the insert are separate statements, so a booking made in the instant an admin deactivates a resource can still succeed. Overlap protection is unaffected.
+    - The `40P01` (deadlock) to conflict mapping is covered by unit tests; the service-level race only produced `23P01` in repeated runs, while the raw-SQL race (RRMS-02) produced `40P01`.
 
 ### Useful references
 
