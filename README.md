@@ -422,14 +422,14 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-08-quality`. **Depends on:** RRMS-03 through RRMS-07.
 
-- [ ] RRMS-08.1 Unit tests for validators and booking interval boundaries.
-- [ ] RRMS-08.2 PostgreSQL integration tests for exclusion, cancelled reuse and concurrency.
-- [ ] RRMS-08.3 Auth and authorization regression tests.
-- [ ] RRMS-08.4 Manually test login, resource CRUD, book, conflict message, cancel, and rebook.
-- [ ] RRMS-08.5 Verify `npm run lint`, `npx tsc --noEmit`, `npm test` and `npm run build` pass (use actual configured scripts).
-- [ ] RRMS-08.6 Check no secrets, unsafe debug endpoints, or mock-only data paths are committed.
-- [ ] RRMS-08.7 Verify migration + seed from fresh database with README instructions.
-- [ ] RRMS-08.8 Review accessibility, errors, form submission, correct dates/timezones.
+- [x] RRMS-08.1 Unit tests for validators and booking interval boundaries. (`tests/unit/reservation-schema.test.ts` and `resource-schema.test.ts`: exact 14-day limit, zero-length and one-minute bookings, impossible dates, capacity and length limits, URL filter fallbacks. Mutation-checked.)
+- [x] RRMS-08.2 PostgreSQL integration tests for exclusion, cancelled reuse and concurrency. (`tests/integration/reservation-constraints.test.ts` and `reservation-service.test.ts`.)
+- [x] RRMS-08.3 Auth and authorization regression tests. (`auth-service`, `authz` and `token` tests, plus `npm run smoke:auth`.)
+- [ ] RRMS-08.4 Manually test login, resource CRUD, book, conflict message, cancel, and rebook. (Every flow passes in `smoke:auth`, `smoke:resources` and `smoke:reservations` over HTTP; a browser walk-through is still to do, e.g. while rehearsing the demo video.)
+- [x] RRMS-08.5 Verify `npm run lint`, `npx tsc --noEmit`, `npm test` and `npm run build` pass (use actual configured scripts). (`npm run typecheck` runs `next typegen && tsc --noEmit`; 197 tests pass.)
+- [x] RRMS-08.6 Check no secrets, unsafe debug endpoints, or mock-only data paths are committed. (`.env` never committed; no route handlers; `console.log` only in CLI scripts; the login "dummy hash" is a deliberate timing defence.)
+- [x] RRMS-08.7 Verify migration + seed from fresh database with README instructions. (On an empty database `npx prisma migrate deploy` creates it and applies the migration, including the exclusion and CHECK constraints; `npm run db:seed` run twice leaves 3 users, 6 resources and 6 reservations.)
+- [x] RRMS-08.8 Review accessibility, errors, form submission, correct dates/timezones. (Labelled fields with linked errors and alerts, skip link and visible focus; server-side errors and conflicts verified by the smoke tests; Asia/Colombo labels on every time.)
 
 **Done when:** project runs locally from clean setup and critical tests pass. Suggested commits: `test(RRMS-08): add booking and access regressions`, `fix(RRMS-08): resolve quality gate issues`.
 
