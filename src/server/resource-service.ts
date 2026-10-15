@@ -1,7 +1,14 @@
 import { prisma } from "@/lib/db";
+import { buildSchedule } from "@/lib/availability";
+import { addDays, colomboDateString, colomboDateTime } from "@/lib/dates";
 import { isUuid } from "@/lib/ids";
 import type { Prisma } from "@/generated/prisma/client";
-import { resourceFiltersSchema, resourceInputSchema, type ResourceFilters } from "@/schemas/resource";
+import {
+  availabilityQuerySchema,
+  resourceFiltersSchema,
+  resourceInputSchema,
+  type ResourceFilters,
+} from "@/schemas/resource";
 import type { SessionUser } from "@/server/auth-service";
 import { assertAdmin, assertAuthenticated } from "@/server/authz";
 import { NotFoundError, parseInput } from "@/server/errors";
@@ -58,6 +65,58 @@ export async function getResourceDetails(actor: SessionUser | null, resourceId: 
   });
 
   return { resource, upcoming };
+}
+
+/**
+ * Free/booked schedule of a resource for one Colombo day or seven days from `date`.
+ * Uses the interval-intersection rule for half-open ranges, so bookings that cross
+ * midnight or the window edges are included and then clipped per day.
+ */
+export async function getResourceAvailability(
+  actor: SessionUser | null,
+  resourceId: string,
+  rawQuery: unknown = {},
+  now: Date = new Date(),
+) {
+  assertAuthenticated(actor);
+  const resource = await findVisibleResource(actor, resourceId);
+  const query = availabilityQuerySchema.parse(rawQuery);
+
+  let firstDay = query.date ?? colomboDateString(now);
+  try {
+    colomboDateTime(firstDay, "00:00");
+  } catch {
+    firstDay = colomboDateString(now); // e.g. 2026-02-30
+  }
+  const dayCount = query.view === "week" ? 7 : 1;
+  const days = Array.from({ length: dayCount }, (_, i) => addDays(firstDay, i));
+  const windowStart = colomboDateTime(days[0], "00:00");
+  const windowEnd = colomboDateTime(addDays(firstDay, dayCount), "00:00");
+
+  const reservations = await prisma.reservation.findMany({
+    where: { resourceId, status: "CONFIRMED", startAt: { lt: windowEnd }, endAt: { gt: windowStart } },
+    orderBy: { startAt: "asc" },
+    include: { user: { select: { name: true } } },
+  });
+
+  const isAdmin = actor.role === "ADMIN";
+  const bookings = reservations.map((r) => {
+    const isMine = r.userId === actor.id;
+    return { start: r.startAt, end: r.endAt, isMine, bookedBy: isAdmin || isMine ? r.user.name : null };
+  });
+
+  return {
+    resource,
+    view: query.view,
+    firstDay,
+    previousDay: addDays(firstDay, -dayCount),
+    nextDay: addDays(firstDay, dayCount),
+    today: colomboDateString(now),
+    days: days.map((date) => ({
+      date,
+      segments: buildSchedule(colomboDateTime(date, "00:00"), colomboDateTime(addDays(date, 1), "00:00"), bookings),
+    })),
+  };
 }
 
 /** For the edit form. Admin only. */

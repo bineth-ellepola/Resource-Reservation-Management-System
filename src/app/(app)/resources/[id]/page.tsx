@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AvailabilitySchedule } from "@/components/availability-schedule";
 import { ResourceActiveToggle } from "@/components/resource-active-toggle";
 import { formatColomboRange } from "@/lib/dates";
 import { requireUser } from "@/lib/session";
 import { RESOURCE_TYPE_LABELS } from "@/schemas/resource";
 import { NotFoundError } from "@/server/errors";
-import { getResourceDetails } from "@/server/resource-service";
+import { getResourceAvailability, getResourceDetails } from "@/server/resource-service";
 
 export const metadata: Metadata = { title: "Resource" };
 
-export default async function ResourceDetailsPage({ params }: PageProps<"/resources/[id]">) {
+export default async function ResourceDetailsPage({ params, searchParams }: PageProps<"/resources/[id]">) {
   const user = await requireUser();
   const { id } = await params;
-  const details = await getResourceDetails(user, id).catch((error: unknown) => {
+  const now = new Date();
+  const [details, availability] = await Promise.all([
+    getResourceDetails(user, id, now),
+    getResourceAvailability(user, id, await searchParams, now),
+  ]).catch((error: unknown) => {
     if (error instanceof NotFoundError) notFound();
     throw error;
   });
@@ -74,6 +79,8 @@ export default async function ResourceDetailsPage({ params }: PageProps<"/resour
           <dd className="font-medium">{resource.isActive ? "Active" : "Inactive"}</dd>
         </div>
       </dl>
+
+      <AvailabilitySchedule availability={availability} now={now} />
 
       <div>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
