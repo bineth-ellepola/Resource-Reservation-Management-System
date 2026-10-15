@@ -410,10 +410,10 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-07-dashboard-ux`. **Depends on:** RRMS-04, RRMS-05.
 
-- [ ] RRMS-07.1 Dashboard counts: active resources, upcoming confirmed bookings, my bookings.
-- [ ] RRMS-07.2 Upcoming reservations section and quick links to browse/book.
-- [ ] RRMS-07.3 Consistent visual design across desktop/mobile; clear nav and empty states.
-- [ ] RRMS-07.4 Form labels, keyboard navigation, focus styles, accessible status messages.
+- [x] RRMS-07.1 Dashboard counts: active resources, upcoming confirmed bookings, my bookings. (Admins also see system-wide counts and bookings by status; definitions in the decision log.)
+- [x] RRMS-07.2 Upcoming reservations section and quick links to browse/book.
+- [ ] RRMS-07.3 Consistent visual design across desktop/mobile; clear nav and empty states. (Current nav section is marked with `aria-current`; still to check pages at phone width in a browser.)
+- [x] RRMS-07.4 Form labels, keyboard navigation, focus styles, accessible status messages. (Skip link added; booking times announce the Asia/Colombo hint.)
 - [ ] RRMS-07.5 Optional: simple utilization metric with explicitly documented denominator/window (only after must-haves pass).
 
 **Done when:** the application communicates system status immediately and works on mobile widths. Suggested commits: `feat(RRMS-07): add reservation overview`, `style(RRMS-07): polish responsive pages`.
