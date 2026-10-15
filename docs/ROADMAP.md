@@ -1,4 +1,6 @@
-# Resource Reservation Management System (RRMS)
+# RRMS development plan and history
+
+> This file was the project README during development: the task plan, checklists and decision log, kept as history. The [README](../README.md) describes the finished application and how to run it.
 
 [![CI](https://github.com/bineth-ellepola/Resource-Reservation-Management-System/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/bineth-ellepola/Resource-Reservation-Management-System/actions/workflows/ci.yml)
 
@@ -194,7 +196,7 @@ Verified on Windows 11 with Node 24.18, npm 11.16 and PostgreSQL 18.6. Installed
 
 ### 4.7 Continuous integration (RRMS-10)
 
-GitHub Actions runs the quality gate in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) on every push to any branch and on every pull request into `main`. A newer push to the same branch cancels the run still in progress. The badge at the top of this README shows the latest result on `main`. It reads "no status" until the workflow has run on `main`.
+GitHub Actions runs the quality gate in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) on every push to any branch and on every pull request into `main`. A newer push to the same branch cancels the run still in progress. The badge at the top of this README shows the latest result on `main`. It reads "no status" until the workflow has run on `main`.
 
 **Temporary database.** The job starts a `postgres:18` service container with an empty `rrms_test` database. The container exists only for that job and is discarded afterwards. The workflow sets `DATABASE_URL` and `TEST_DATABASE_URL` to this database, because `tests/setup.ts` only accepts database names ending in `_test`. `AUTH_SECRET` is a fixed CI-only placeholder. No repository secrets are needed, and `.env` is never used in CI.
 
@@ -273,7 +275,7 @@ ALTER TABLE "Reservation"
 
 Produce a shareable diagram using <https://dbdiagram.io> or draw.io. Put the public/viewable **actual** URL in `docs/ERD.md` and this README once created. Include columns, PKs, FKs, cardinalities and statuses. If dbdiagram DBML cannot represent exclusion constraints, annotate the constraint in the diagram description and point to the SQL migration. **Do not invent the URL.**
 
-ERD: [`docs/ERD.md`](docs/ERD.md) contains the diagram (Mermaid, rendered by GitHub), relationships, constraints, indexes and DBML source for dbdiagram.io. Public dbdiagram.io link: **TODO — add real accessible link before submission**.
+ERD: [`docs/ERD.md`](ERD.md) contains the diagram (Mermaid, rendered by GitHub), relationships, constraints, indexes and DBML source for dbdiagram.io. Public dbdiagram.io link: **TODO — add real accessible link before submission**.
 
 ## 6. Git workflow: one branch for EACH task
 
@@ -437,8 +439,8 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 
 **Branch:** `feature/RRMS-09-submission`. **Depends on:** RRMS-08.
 
-- [ ] RRMS-09.1 Replace roadmap-only README text with verified features, exact setup, env, migrations, seed and run commands; retain useful roadmap as history or link to docs.
-- [ ] RRMS-09.2 Document design rationale, tradeoffs, schema, race prevention, API/actions, limitations.
+- [x] RRMS-09.1 Replace roadmap-only README text with verified features, exact setup, env, migrations, seed and run commands; retain useful roadmap as history or link to docs. (This plan moved to `docs/ROADMAP.md`. The new README's setup was verified on empty databases, including migrating the test database, which the old instructions left out.)
+- [x] RRMS-09.2 Document design rationale, tradeoffs, schema, race prevention, API/actions, limitations.
 - [ ] RRMS-09.3 Confirm `docs/ERD.md` has public shareable link; test anonymous viewing.
 - [ ] RRMS-09.4 Write and record **3–5 minute** video: problem → dashboard/resources → booking → overlapping attempt rejected → cancellation/availability → DB constraint explanation.
 - [ ] RRMS-09.5 Upload video to an accessible sharing location; verify with logged-out browser.
