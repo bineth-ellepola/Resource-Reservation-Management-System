@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { logout } from "@/app/actions/auth";
+import { MainNav, NavLinks } from "@/components/main-nav";
 import { getCurrentUser } from "@/lib/session";
 
 // The header renders as static shell; only the user menu reads the session, behind
@@ -8,28 +8,25 @@ import { getCurrentUser } from "@/lib/session";
 export default function AppLayout({ children }: LayoutProps<"/">) {
   return (
     <div className="flex flex-1 flex-col">
+      <a
+        href="#main"
+        className="sr-only rounded-md bg-white px-3 py-2 text-sm font-medium focus:not-sr-only focus:absolute focus:left-4 focus:top-2 focus:z-10"
+      >
+        Skip to main content
+      </a>
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <nav aria-label="Main" className="flex items-center gap-6">
-            <Link href="/dashboard" className="font-semibold text-indigo-700">
-              RRMS
-            </Link>
-            <Link href="/dashboard" className="text-sm text-slate-700 hover:text-slate-900">
-              Dashboard
-            </Link>
-            <Link href="/resources" className="text-sm text-slate-700 hover:text-slate-900">
-              Resources
-            </Link>
-            <Link href="/reservations" className="text-sm text-slate-700 hover:text-slate-900">
-              Bookings
-            </Link>
-          </nav>
+          <Suspense fallback={<NavLinks pathname={null} />}>
+            <MainNav />
+          </Suspense>
           <Suspense fallback={<span className="text-sm text-slate-400">Loading…</span>}>
             <UserMenu />
           </Suspense>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      <main id="main" tabIndex={-1} className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 focus:outline-none">
+        {children}
+      </main>
     </div>
   );
 }
