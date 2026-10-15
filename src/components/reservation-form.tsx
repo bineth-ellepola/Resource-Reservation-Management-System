@@ -23,9 +23,9 @@ export function ReservationForm({
   const value = (field: "resourceId" | "start" | "end" | "purpose") =>
     state.values?.[field] ?? (field === "purpose" ? "" : defaults[field]);
   const errorFor = (field: string) => state.fieldErrors?.[field]?.[0];
-  const aria = (field: string) => ({
+  const aria = (field: string, hint?: string) => ({
     "aria-invalid": errorFor(field) ? true : undefined,
-    "aria-describedby": errorFor(field) ? `${field}-error` : undefined,
+    "aria-describedby": [hint, errorFor(field) && `${field}-error`].filter(Boolean).join(" ") || undefined,
   });
 
   return (
@@ -61,14 +61,14 @@ export function ReservationForm({
             <label htmlFor="start" className="block text-sm">
               Start
             </label>
-            <input id="start" name="start" type="datetime-local" required min={minStart} defaultValue={value("start")} {...aria("start")} className={inputClass} />
+            <input id="start" name="start" type="datetime-local" required min={minStart} defaultValue={value("start")} {...aria("start", "timezone-hint")} className={inputClass} />
             <FieldError id="start" message={errorFor("start")} />
           </div>
           <div>
             <label htmlFor="end" className="block text-sm">
               End
             </label>
-            <input id="end" name="end" type="datetime-local" required min={minStart} defaultValue={value("end")} {...aria("end")} className={inputClass} />
+            <input id="end" name="end" type="datetime-local" required min={minStart} defaultValue={value("end")} {...aria("end", "timezone-hint")} className={inputClass} />
             <FieldError id="end" message={errorFor("end")} />
           </div>
         </div>
