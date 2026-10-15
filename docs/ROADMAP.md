@@ -275,7 +275,7 @@ ALTER TABLE "Reservation"
 
 Produce a shareable diagram using <https://dbdiagram.io> or draw.io. Put the public/viewable **actual** URL in `docs/ERD.md` and this README once created. Include columns, PKs, FKs, cardinalities and statuses. If dbdiagram DBML cannot represent exclusion constraints, annotate the constraint in the diagram description and point to the SQL migration. **Do not invent the URL.**
 
-ERD: [`docs/ERD.md`](ERD.md) contains the diagram (Mermaid, rendered by GitHub), relationships, constraints, indexes and DBML source for dbdiagram.io. Public dbdiagram.io link: **TODO — add real accessible link before submission**.
+ERD: [`docs/ERD.md`](ERD.md) contains the diagram (Mermaid, rendered by GitHub), relationships, constraints, indexes and DBML source for dbdiagram.io. Public dbdiagram.io link: <https://dbdiagram.io/d/RRMS_assingment-6ad096c5064322c8695a7dc7>.
 
 ## 6. Git workflow: one branch for EACH task
 
@@ -348,7 +348,7 @@ Mark each checkbox only after completing and verifying it. For every task: creat
 - [x] RRMS-02.2 Generate migration; insert valid-time CHECK and partial GiST exclusion constraint **into a committed SQL migration**.
 - [x] RRMS-02.3 Apply migrations to a fresh local DB; inspect actual DB constraints.
 - [x] RRMS-02.4 Implement idempotent demo seed: admin, user, 6 varied resources and sample confirmed/cancelled reservations; hash passwords.
-- [ ] RRMS-02.5 Create shareable ER diagram; document relationships, indexes and constraint. (Diagram, DBML and documentation are in `docs/ERD.md`; the public dbdiagram.io link is still to be created.)
+- [x] RRMS-02.5 Create shareable ER diagram; document relationships, indexes and constraint. (Diagram, DBML and documentation are in `docs/ERD.md`, with the public dbdiagram.io link.)
 - [x] RRMS-02.6 Test DB directly: overlapping confirmed insert fails; adjacent intervals succeed; cancelled records don't block.
 
 **Done when:** fresh database reset/migrate/seed reproduces demo data and database itself prevents overlap. Suggested commits: `feat(RRMS-02): add reservation schema and exclusions`, `chore(RRMS-02): seed demo resources`, `docs(RRMS-02): add ER diagram`.

@@ -8,7 +8,7 @@ Built with Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4, Prisma
 
 | | |
 | --- | --- |
-| ER diagram | [docs/ERD.md](docs/ERD.md) (renders on GitHub) · dbdiagram.io: **TODO: add public link** |
+| ER diagram | [docs/ERD.md](docs/ERD.md) (renders on GitHub) · [dbdiagram.io](https://dbdiagram.io/d/RRMS_assingment-6ad096c5064322c8695a7dc7) |
 | Demo video | **TODO: add link** |
 | Development plan and decision log | [docs/ROADMAP.md](docs/ROADMAP.md) |
 
