@@ -1,6 +1,6 @@
 # Entity-relationship diagram
 
-**Shareable diagram (dbdiagram.io):** TODO: paste the DBML below into <https://dbdiagram.io>, share it publicly, and put the real link here and in the README. Test it in a logged-out browser.
+**Shareable diagram (dbdiagram.io):** <https://dbdiagram.io/d/RRMS_assingment-6ad096c5064322c8695a7dc7> (made from the DBML below).
 
 The source of truth is [`prisma/schema.prisma`](../prisma/schema.prisma) plus the hand-written constraints at the end of [`prisma/migrations/20261014084547_init_reservation_schema/migration.sql`](../prisma/migrations/20261014084547_init_reservation_schema/migration.sql).
 
