@@ -85,6 +85,8 @@ Created by `npm run db:seed`, for local use only:
 | `admin@rrms.local` | `Demo@12345` | Administrator |
 | `user@rrms.local` | `Demo@12345` | User |
 | `user2@rrms.local` | `Demo@12345` | User (a second user, to show ownership rules) |
+| `binethellepola@gmail.com` | `Bineth@123` | User |
+| `dasuni@gmail.com` | `Dasuni@123` | User |
 
 The seed also creates six resources (one inactive) and six bookings dated relative to today in Asia/Colombo: back-to-back bookings, a cancelled booking overlapping a confirmed one, and a past booking. Running the seed again is safe: it resets the demo accounts and the six demo resources and re-creates any missing demo bookings, but never moves or duplicates a booking.
 

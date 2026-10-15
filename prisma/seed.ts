@@ -8,13 +8,15 @@ import { prisma } from "../src/lib/db";
 import { addDays, colomboDateString, colomboDateTime } from "../src/lib/dates";
 import type { ReservationStatus, ResourceType, Role } from "../src/generated/prisma/client";
 
-// Local demo credentials only. Documented in README; never use for real accounts.
+// Local demo credentials only. Documented in README; never reuse these passwords elsewhere.
 const DEMO_PASSWORD = "Demo@12345";
 
-const users: { email: string; name: string; role: Role }[] = [
-  { email: "admin@rrms.local", name: "Demo Admin", role: "ADMIN" },
-  { email: "user@rrms.local", name: "Demo User", role: "USER" },
-  { email: "user2@rrms.local", name: "Second User", role: "USER" },
+const users: { email: string; name: string; role: Role; password: string }[] = [
+  { email: "admin@rrms.local", name: "Demo Admin", role: "ADMIN", password: DEMO_PASSWORD },
+  { email: "user@rrms.local", name: "Demo User", role: "USER", password: DEMO_PASSWORD },
+  { email: "user2@rrms.local", name: "Second User", role: "USER", password: DEMO_PASSWORD },
+  { email: "binethellepola@gmail.com", name: "Bineth", role: "USER", password: "Bineth@123" },
+  { email: "dasuni@gmail.com", name: "Dasuni", role: "USER", password: "Dasuni@123" },
 ];
 
 const resources: {
@@ -34,10 +36,9 @@ const resources: {
 ];
 
 async function main() {
-  const passwordHash = await hashPassword(DEMO_PASSWORD);
-
   const userIds: Record<string, string> = {};
-  for (const user of users) {
+  for (const { password, ...user } of users) {
+    const passwordHash = await hashPassword(password);
     const saved = await prisma.user.upsert({
       where: { email: user.email },
       update: { name: user.name, role: user.role, passwordHash },
